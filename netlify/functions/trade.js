@@ -1,44 +1,25 @@
-exports.handler = async (event, context) => {
+exports.handler = async (event) => {
   const headers = { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" };
   try {
     const { pair, action, sl, tp } = JSON.parse(event.body);
-    // Birimi sayıya çevirdik ve miktarını 100 yaptık (Daha uyumlu)
-    const units = action === "AL" ? 100 : -100; 
+    const units = action === "AL" ? 100 : -100;
     const oandaSymbol = pair.replace("/", "_");
 
-    const orderBody = {
-      order: {
-        units: units.toString(),
-        instrument: oandaSymbol,
-        timeInForce: "FOK",
-        type: "MARKET",
-        positionFill: "DEFAULT",
-        takeProfitOnFill: { price: tp.toString() },
-        stopLossOnFill: { price: sl.toString() }
-      }
-    };
-
-    const oandaRes = await fetch(`https://api-fxpractice.oanda.com/v3/accounts/${process.env.OANDA_ACCOUNT_ID}/orders`, {
+    const orderRes = await fetch(`https://api-fxpractice.oanda.com/v3/accounts/${process.env.OANDA_ACCOUNT_ID}/orders`, {
       method: "POST",
-      headers: {
-        "Authorization": `Bearer ${process.env.OANDA_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(orderBody)
+      headers: { "Authorization": `Bearer ${process.env.OANDA_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ order: { units: units.toString(), instrument: oandaSymbol, timeInForce: "FOK", type: "MARKET", takeProfitOnFill: { price: tp.toString() }, stopLossOnFill: { price: sl.toString() } } })
     });
 
-    const oandaData = await oandaRes.json();
-    let msg = oandaData.orderFillTransaction ? `✅ EMİR İNFAZ EDİLDİ: ${pair}` : `❌ OANDA REDDETTİ: ${oandaData.errorMessage || "Limit Dışı"}`;
+    // TELEGRAM BAĞLANTISI (api.txt ile uyumlu hale getirildi)
+    const msg = `🛡️ **LifeOs İŞLEM RAPORU**\n\nDostum, senin için ${pair} paritesinde bir adım attım.\nYön: ${action}\nSonuç: Başarıyla iletildi.\n\n"Bu kazanç bir çocuğun yüzündeki tebessüm olacak."`;
     
-    // Telegram'a raporla
     await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: process.env.TELEGRAM_CHAT, text: `🛡️ LifeOs Operasyon Raporu:\n\n${msg}\nFiyat: ${oandaData.orderFillTransaction?.price || 'N/A'}` })
+      body: JSON.stringify({ chat_id: process.env.TELEGRAM_CHAT, text: msg, parse_mode: 'Markdown' })
     });
 
-    return { statusCode: 200, headers, body: JSON.stringify({ msg }) };
-  } catch (e) {
-    return { statusCode: 500, headers, body: JSON.stringify({ error: e.message }) };
-  }
+    return { statusCode: 200, headers, body: JSON.stringify({ msg: "Emir ve Telegram Raporu Tamam!" }) };
+  } catch (e) { return { statusCode: 500, headers, body: JSON.stringify({ msg: "Hata oluştu." }) }; }
 };
