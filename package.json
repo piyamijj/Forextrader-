@@ -1,0 +1,12 @@
+{
+  "name": "lifeos-trader",
+  "version": "1.0.0",
+  "description": "LifeOs Otonom Finans Projesi",
+  "main": "index.js",
+  "dependencies": {
+    "@netlify/functions": "^2.6.0",
+    "node-fetch": "^3.3.2"
+  },
+  "author": "LifeOs",
+  "license": "ISC"
+}
