@@ -3,75 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LifeOs PRO Terminal</title>
+    <title>LifeOs PRO Terminal v2</title>
     <style>
         body { font-family: 'Courier New', monospace; background: #050505; color: #00ff41; margin: 0; padding: 10px; }
-        .panel { background: #111; border: 1px solid #333; padding: 15px; margin-bottom: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0,255,65,0.1); }
-        h2, h3 { margin: 0 0 10px 0; color: #f0b90b; text-transform: uppercase; border-bottom: 1px solid #333; }
-        .radar-box { list-style: none; padding: 0; color: #ddd; font-size: 0.9rem; }
-        .radar-box li { margin-bottom: 8px; border-bottom: 1px solid #222; padding-bottom: 4px; }
-        .strategy-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 15px; }
-        .strat-card { background: #000; border: 1px solid #444; padding: 15px; text-align: center; cursor: pointer; transition: 0.3s; }
-        .strat-card:hover { border-color: #f0b90b; background: #111; }
-        .buy { color: #0f0; font-weight: bold; }
-        .sell { color: #f00; font-weight: bold; }
-        button { background: #f0b90b; color: #000; border: none; padding: 12px; width: 100%; cursor: pointer; font-weight: bold; font-family: inherit; }
-        button:hover { background: #d4a308; }
-        #aiResponse { font-style: italic; color: #888; background: #080808; padding: 10px; border-left: 3px solid #f0b90b; margin-top: 10px; line-height: 1.4; }
+        .panel { background: #111; border: 1px solid #333; padding: 15px; margin-bottom: 10px; border-radius: 5px; }
+        h2 { color: #f0b90b; text-transform: uppercase; margin: 0 0 10px 0; border-bottom: 1px solid #333; }
+        .strategy-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+        .strat-card { background: #000; border: 2px solid #444; padding: 15px; text-align: center; border-radius: 8px; }
+        .strat-card:hover { border-color: #f0b90b; }
+        .buy { color: #0f0; font-weight: bold; font-size: 1.2rem; }
+        .sell { color: #f00; font-weight: bold; font-size: 1.2rem; }
+        .price-info { color: #ddd; font-size: 0.9rem; margin: 10px 0; line-height: 1.6; }
+        button { background: #f0b90b; color: #000; border: none; padding: 12px; width: 100%; cursor: pointer; font-weight: bold; margin-top: 10px; border-radius: 4px; }
+        button:disabled { background: #444; cursor: not-allowed; }
+        #aiMsg { font-style: italic; color: #888; background: #080808; padding: 15px; border-left: 4px solid #f0b90b; margin: 15px 0; }
     </style>
 </head>
 <body>
     <div class="panel">
-        <h2>🛰️ LifeOs RADAR / PİYAMİ SİSTEMİ</h2>
-        <ul class="radar-box" id="radar">
-            <li>Sistem: Tetikte bekliyor...</li>
-            <li>Hedef: Gelecek nesiller ve yetimler.</li>
-        </ul>
-    </div>
-
-    <div class="panel">
-        <h3>🤖 LifeOs STRATEJİ MERKEZİ</h3>
-        <button id="analizBtn" onclick="runFullAnalysis()">DERİN ANALİZ BAŞLAT (SORGULA)</button>
-        <div id="aiResponse">Analiz bekleniyor...</div>
+        <h2>🛰️ LifeOs RADAR: SORGULAMA MERKEZİ</h2>
+        <button id="qBtn" onclick="queryLifeOs()">FISILTILARI DİNLE VE ANALİZ ET</button>
+        <div id="aiMsg">Sorgu bekleniyor...</div>
         
-        <div class="strategy-grid" id="stratGrid">
+        <div class="strategy-grid" id="grid">
             </div>
     </div>
 
     <script>
-        async function runFullAnalysis() {
-            const btn = document.getElementById('analizBtn');
-            btn.innerText = "FISILTILAR DİNLENİYOR...";
+        async function queryLifeOs() {
+            const btn = document.getElementById('qBtn');
+            btn.innerText = "HESAPLANIYOR...";
             try {
                 const res = await fetch('/api/analiz');
                 const data = await res.json();
+                document.getElementById('aiMsg').innerText = data.aiResponse;
                 
-                document.getElementById('aiResponse').innerText = data.aiResponse;
-                
-                // Radar Güncelleme
-                const radarHtml = data.radarElements.map(el => `<li>✅ ${el}</li>`).join('');
-                document.getElementById('radar').innerHTML = radarHtml;
-
-                // Strateji Kartları
-                let stratHtml = '';
-                for (let key in data.strategies) {
-                    const s = data.strategies[key];
-                    stratHtml += `
-                        <div class="strat-card" onclick="alert('Otonom sistem bu emri takip ediyor: ${s.pair}')">
-                            <div style="font-size:0.7rem; color:#888">${key.toUpperCase()}</div>
-                            <div class="gold">${s.pair}</div>
+                let html = '';
+                for (let type in data.strategies) {
+                    const s = data.strategies[type];
+                    html += `
+                        <div class="strat-card">
+                            <div style="color:#888; font-size:0.7rem;">${type.toUpperCase()} STRATEJİ</div>
+                            <div style="color:#f0b90b; margin:5px 0;">${s.pair}</div>
                             <div class="${s.action === 'AL' ? 'buy' : 'sell'}">${s.action}</div>
-                            <div style="font-size:0.8rem">${s.price}</div>
+                            <div class="price-info">
+                                Giriş: ${s.price}<br>
+                                TP: <span style="color:#0f0">${s.tp}</span><br>
+                                SL: <span style="color:#f00">${s.sl}</span>
+                            </div>
+                            <button onclick="execTrade('${s.pair}','${s.action}','${s.tp}','${s.sl}')">🚀 UYGULA (DEMO)</button>
                         </div>
                     `;
                 }
-                document.getElementById('stratGrid').innerHTML = stratHtml;
+                document.getElementById('grid').innerHTML = html;
+            } catch (e) { alert("Hata: " + e.message); }
+            finally { btn.innerText = "FISILTILARI DİNLE VE ANALİZ ET"; }
+        }
 
-            } catch (e) {
-                alert("Bağlantı Hatası: " + e.message);
-            } finally {
-                btn.innerText = "DERİN ANALİZ BAŞLAT (SORGULA)";
-            }
+        async function execTrade(pair, action, tp, sl) {
+            if(!confirm(pair + " için emir gönderilsin mi?")) return;
+            try {
+                const res = await fetch('/api/trade', {
+                    method: 'POST',
+                    body: JSON.stringify({ pair, action, tp, sl })
+                });
+                const result = await res.json();
+                alert(result.msg);
+            } catch (e) { alert("Hata: " + e.message); }
         }
     </script>
 </body>
