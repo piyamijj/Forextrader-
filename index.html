@@ -2,124 +2,28 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Piyami PRO Terminal</title>
+    <title>LifeOs Operasyon Merkezi</title>
     <style>
-        body { font-family: 'Courier New', monospace; background: #050505; color: #00ff41; margin: 0; padding: 10px; }
-        .panel { background: #111; border: 1px solid #333; padding: 15px; margin-bottom: 10px; border-radius: 5px; }
-        h2, h3 { margin: 0 0 10px 0; color: #f0b90b; text-transform: uppercase; }
-        .radar-box { list-style: none; padding: 0; color: #ddd; font-size: 0.8rem; }
-        .radar-box li { margin-bottom: 5px; border-bottom: 1px solid #222; padding-bottom: 2px; }
-        .strategy-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
-        .strat-card { background: #000; border: 1px solid #444; padding: 10px; text-align: center; cursor: pointer; }
-        .strat-card:hover { border-color: #f0b90b; }
-        .buy { color: #0f0; } .sell { color: #f00; } .wait { color: #888; }
-        button { width: 100%; padding: 12px; background: #f0b90b; color: #000; border: none; font-weight: bold; cursor: pointer; text-transform: uppercase; margin-top: 5px; }
-        textarea { width: 100%; background: #222; color: #fff; border: 1px solid #444; padding: 5px; box-sizing: border-box; }
-        
-        /* POPUP STİLİ */
-        #tradeModal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; background: #1a1a1a; border: 2px solid #f0b90b; z-index: 100; padding: 20px; box-shadow: 0 0 100px rgba(0,0,0,1); text-align: center; }
-        .execute-btn { background: #ff0000; color: #fff; font-size: 1.1rem; animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); } }
+        body { background: #050505; color: #00ff41; font-family: 'Courier New', monospace; padding: 20px; }
+        .box { border: 1px solid #333; padding: 20px; border-radius: 10px; background: #111; }
+        .gold { color: #f0b90b; }
+        button { background: #f0b90b; color: #000; padding: 15px; width: 100%; border: none; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
-    <div class="panel">
-        <h2>🛰️ PİYAMİ RADAR</h2>
-        <div id="aiResponse" style="font-size: 0.9rem; color: #ccc; font-style: italic; margin-bottom:10px;">"Emirlerinizi bekliyorum komutanım..."</div>
-        <ul id="radarElements" class="radar-box"></ul>
-    </div>
-
-    <div class="panel">
-        <h3>🎯 OPERASYON MASASI</h3>
-        <div class="strategy-grid">
-            <div class="strat-card" onclick="openModal('scalp')">SCALP (XAU)<br><span id="sc_act" class="wait">BEKLE</span></div>
-            <div class="strat-card" onclick="openModal('day')">GÜNLÜK (EUR)<br><span id="dy_act" class="wait">BEKLE</span></div>
-            <div class="strat-card" onclick="openModal('swing')">SWING (TRY)<br><span id="sw_act" class="wait">BEKLE</span></div>
-        </div>
-    </div>
-
-    <div class="panel">
-        <textarea id="userQuestion" placeholder="Piyami'ye sor..."></textarea>
-        <button onclick="runAnalysis()">DURUMU ANALİZ ET</button>
-    </div>
-
-    <div id="tradeModal">
-        <h2 style="color:#f0b90b">⚠️ EMRİ ONAYLA</h2>
-        <div id="modalContent" style="margin: 15px 0; font-size: 1.1rem; color: #fff;"></div>
-        
-        <button id="execBtn" class="execute-btn" onclick="executeTrade()">🚀 DEMO HESAPTA UYGULA</button>
-        <button onclick="document.getElementById('tradeModal').style.display='none'" style="background:#333; color:#fff; margin-top:10px;">İPTAL</button>
+    <div class="box">
+        <h2 class="gold">🛰️ PİYAMİ / LifeOs RADAR</h2>
+        <div id="aiResponse">"Gelecek nesiller için tetikte bekliyorum..."</div>
+        <hr>
+        <button onclick="runAnalysis()">MANUEL ANALİZ BAŞLAT</button>
     </div>
 
     <script>
-        let currentStrategy = null;
-        let latestData = null;
-
         async function runAnalysis() {
-            const btn = document.querySelector('button');
-            const q = document.getElementById('userQuestion').value;
-            btn.innerText = "UYDU BAĞLANTISI KURULUYOR...";
-            try {
-                const res = await fetch('/api/analiz', { method: 'POST', body: JSON.stringify({ question: q }) });
-                latestData = await res.json();
-                
-                document.getElementById('aiResponse').innerText = `"${latestData.aiResponse}"`;
-                document.getElementById('radarElements').innerHTML = latestData.radarElements.map(e => `<li>> ${e}</li>`).join('');
-                
-                if(latestData.strategies) {
-                    updateCard('sc', latestData.strategies.scalp);
-                    updateCard('dy', latestData.strategies.day);
-                    updateCard('sw', latestData.strategies.swing);
-                }
-                btn.innerText = "DURUMU ANALİZ ET";
-            } catch (e) { alert(e.message); btn.innerText = "TEKRAR DENE"; }
-        }
-
-        function updateCard(pre, s) {
-            const el = document.getElementById(pre + '_act');
-            el.innerText = s.action;
-            el.className = s.action === 'AL' ? 'buy' : s.action === 'SAT' ? 'sell' : 'wait';
-        }
-
-        function openModal(type) {
-            if(!latestData) return alert("Önce analiz yap!");
-            currentStrategy = latestData.strategies[type];
-            
-            const html = `
-                <b>${currentStrategy.pair}</b><br>
-                YÖN: <span style="color:${currentStrategy.action==='AL'?'#0f0':'#f00'}">${currentStrategy.action}</span><br>
-                <hr style="border-color:#333">
-                Giriş: ${currentStrategy.price}<br>
-                TP: ${currentStrategy.tp}<br>
-                SL: ${currentStrategy.sl}
-            `;
-            document.getElementById('modalContent').innerHTML = html;
-            document.getElementById('tradeModal').style.display = 'block';
-            
-            // Eğer BEKLE ise butonu gizle
-            document.getElementById('execBtn').style.display = currentStrategy.action === 'BEKLE' ? 'none' : 'block';
-        }
-
-        async function executeTrade() {
-            const btn = document.getElementById('execBtn');
-            btn.innerText = "EMİR GÖNDERİLİYOR...";
-            btn.disabled = true;
-
-            try {
-                const res = await fetch('/api/trade', {
-                    method: 'POST',
-                    body: JSON.stringify(currentStrategy)
-                });
-                const data = await res.json();
-                alert(data.msg || "Emir iletildi!");
-                document.getElementById('tradeModal').style.display = 'none';
-            } catch (e) {
-                alert("Hata: " + e.message);
-            } finally {
-                btn.innerText = "🚀 DEMO HESAPTA UYGULA";
-                btn.disabled = false;
-            }
+            const res = await fetch('/api/analiz');
+            const data = await res.json();
+            document.getElementById('aiResponse').innerText = data.aiResponse;
+            alert("Analiz Tamamlandı: " + data.globalStatus);
         }
     </script>
 </body>
