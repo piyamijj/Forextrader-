@@ -1,8 +1,9 @@
 const { schedule } = require('@netlify/functions');
 
-const handler = async (event) => {
+// Ana İşlem Fonksiyonu
+const handler = async (event, context) => {
   try {
-    // 1. Fiyat Verisi Al
+    [span_4](start_span)// 1. Fiyat Verisi Al (Oanda Practice Hesabı)[span_4](end_span)
     const oandaRes = await fetch(`https://api-fxpractice.oanda.com/v3/instruments/XAU_USD/candles?count=1&granularity=M15&price=M`, {
       headers: { "Authorization": `Bearer ${process.env.OANDA_API_KEY}` }
     });
@@ -16,9 +17,10 @@ const handler = async (event) => {
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
     });
     const gData = await geminiRes.json();
-    const decision = JSON.parse(gData.candidates[0].content.parts[0].text.replace(/```json/g, "").replace(/```/g, "").trim());
+    const decisionText = gData.candidates[0].content.parts[0].text.replace(/```json/g, "").replace(/```/g, "").trim();
+    const decision = JSON.parse(decisionText);
 
-    // 3. Karar Uygulama ve Telegram Raporu
+    [span_5](start_span)// 3. Karar Uygulama ve Telegram Raporu[span_5](end_span)
     if (decision.action !== "BEKLE") {
       const units = decision.action === "AL" ? 100 : -100;
       const orderBody = {
@@ -34,11 +36,14 @@ const handler = async (event) => {
 
       await fetch(`https://api-fxpractice.oanda.com/v3/accounts/${process.env.OANDA_ACCOUNT_ID}/orders`, {
         method: "POST",
-        headers: { "Authorization": `Bearer ${process.env.OANDA_API_KEY}`, "Content-Type": "application/json" },
+        headers: { 
+          "Authorization": `Bearer ${process.env.OANDA_API_KEY}`, 
+          "Content-Type": "application/json" 
+        },
         body: JSON.stringify(orderBody)
       });
 
-      // Telegram Kanalına Canlı Mesaj
+      [span_6](start_span)// Telegram Kanalına Canlı Rapor[span_6](end_span)
       const msg = `🛡️ **LifeOs Otonom Operasyon**\n\nKarar: ${decision.action}\nFiyat: ${goldPrice}\nHedef: Çocuklar için yeni bir umut ışığı.`;
       await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
         method: 'POST',
@@ -46,10 +51,13 @@ const handler = async (event) => {
         body: JSON.stringify({ chat_id: process.env.TELEGRAM_CHAT, text: msg, parse_mode: 'Markdown' })
       });
     }
+
     return { statusCode: 200 };
-  } catch (e) { return { statusCode: 500 }; }
+  } catch (e) {
+    console.error("Hata:", e);
+    return { statusCode: 500 };
+  }
 };
 
-// Her 15 dakikada bir tetikleme
-export const config = { schedule: "*/15 * * * *" };
-exports.handler = handler;
+// CRITICAL FIX: Handler'ı schedule ile sarmalıyoruz (Her 15 dakikada bir)
+exports.handler = schedule("*/15 * * * *", handler);
