@@ -31,10 +31,10 @@ exports.handler = async (event, context) => {
     let msg = oandaData.orderFillTransaction ? `✅ EMİR İNFAZ EDİLDİ: ${pair}` : `❌ OANDA REDDETTİ: ${oandaData.errorMessage || "Limit Dışı"}`;
     
     // Telegram'a raporla
-    await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`, {
+    await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: process.env.TELEGRAM_CHAT_ID, text: `🛡️ LifeOs Operasyon Raporu:\n\n${msg}\nFiyat: ${oandaData.orderFillTransaction?.price || 'N/A'}` })
+      body: JSON.stringify({ chat_id: process.env.TELEGRAM_CHAT, text: `🛡️ LifeOs Operasyon Raporu:\n\n${msg}\nFiyat: ${oandaData.orderFillTransaction?.price || 'N/A'}` })
     });
 
     return { statusCode: 200, headers, body: JSON.stringify({ msg }) };
