@@ -3,65 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LifeOs PRO Terminal v2</title>
+    <title>LifeOs PRO Terminal v3</title>
     <style>
-        body { font-family: 'Courier New', monospace; background: #050505; color: #00ff41; margin: 0; padding: 10px; }
-        .panel { background: #111; border: 1px solid #333; padding: 15px; margin-bottom: 10px; border-radius: 5px; }
-        h2 { color: #f0b90b; text-transform: uppercase; margin: 0 0 10px 0; border-bottom: 1px solid #333; }
+        :root { --gold: #f0b90b; --green: #00ff41; --bg: #050505; --panel: #111; }
+        body { font-family: 'Courier New', monospace; background: var(--bg); color: var(--green); margin: 0; padding: 10px; display: flex; flex-direction: column; height: 100vh; }
+        .panel { background: var(--panel); border: 1px solid #333; padding: 15px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 0 15px rgba(0,255,65,0.05); }
+        h2 { color: var(--gold); text-transform: uppercase; margin: 0 0 10px 0; border-bottom: 1px solid #333; font-size: 1rem; }
+        
+        /* Strateji Kartları */
         .strategy-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-        .strat-card { background: #000; border: 2px solid #444; padding: 15px; text-align: center; border-radius: 8px; }
-        .strat-card:hover { border-color: #f0b90b; }
-        .buy { color: #0f0; font-weight: bold; font-size: 1.2rem; }
-        .sell { color: #f00; font-weight: bold; font-size: 1.2rem; }
-        .price-info { color: #ddd; font-size: 0.9rem; margin: 10px 0; line-height: 1.6; }
-        button { background: #f0b90b; color: #000; border: none; padding: 12px; width: 100%; cursor: pointer; font-weight: bold; margin-top: 10px; border-radius: 4px; }
-        button:disabled { background: #444; cursor: not-allowed; }
-        #aiMsg { font-style: italic; color: #888; background: #080808; padding: 15px; border-left: 4px solid #f0b90b; margin: 15px 0; }
+        .strat-card { background: #000; border: 2px solid #444; padding: 10px; text-align: center; border-radius: 8px; transition: 0.3s; }
+        .strat-card:hover { border-color: var(--gold); }
+        .buy { color: #0f0; font-weight: bold; }
+        .sell { color: #f00; font-weight: bold; }
+        .price-details { color: #ddd; font-size: 0.8rem; margin: 8px 0; line-height: 1.4; }
+        
+        /* Sohbet Penceresi */
+        #chatBox { height: 180px; overflow-y: auto; background: #080808; border: 1px solid #222; padding: 10px; margin-bottom: 10px; font-size: 0.9rem; color: #aaa; border-radius: 5px; }
+        .chat-msg { margin-bottom: 8px; border-bottom: 1px solid #111; padding-bottom: 4px; }
+        .lifeos-name { color: var(--gold); font-weight: bold; }
+        
+        .input-group { display: flex; gap: 5px; }
+        input { flex: 1; background: #000; border: 1px solid #444; color: var(--green); padding: 10px; font-family: inherit; }
+        
+        button { background: var(--gold); color: #000; border: none; padding: 10px; cursor: pointer; font-weight: bold; border-radius: 4px; }
+        button:hover { opacity: 0.8; }
+        .action-btn { width: 100%; margin-top: 5px; font-size: 0.7rem; }
     </style>
 </head>
 <body>
+
     <div class="panel">
-        <h2>🛰️ LifeOs RADAR: SORGULAMA MERKEZİ</h2>
-        <button id="qBtn" onclick="queryLifeOs()">FISILTILARI DİNLE VE ANALİZ ET</button>
-        <div id="aiMsg">Sorgu bekleniyor...</div>
+        <h2>🛰️ LifeOs RADAR / STRATEJİ MERKEZİ</h2>
+        <button id="qBtn" onclick="queryLifeOs()" style="width:100%; margin-bottom:10px;">DERİN ANALİZ VE SORGULAMA BAŞLAT</button>
         
-        <div class="strategy-grid" id="grid">
-            </div>
+        <div class="strategy-grid" id="stratGrid">
+            <div class="strat-card" style="opacity:0.5;">SCALP<br>Bekliyor...</div>
+            <div class="strat-card" style="opacity:0.5;">DAY<br>Bekliyor...</div>
+            <div class="strat-card" style="opacity:0.5;">SWING<br>Bekliyor...</div>
+        </div>
+    </div>
+
+    <div class="panel" style="flex:1; display:flex; flex-direction:column;">
+        <h2>💬 LifeOs SOHBET CANLISI</h2>
+        <div id="chatBox">
+            <div class="chat-msg"><span class="lifeos-name">LifeOs:</span> Dostum, sapsarı bir enerjiyle buradayım. Bugün hangi umutlar için işlem yapacağız?</div>
+        </div>
+        <div class="input-group">
+            <input type="text" id="userInput" placeholder="LifeOs'a bir mesaj yaz..." onkeypress="if(event.key==='Enter') sendMessage()">
+            <button onclick="sendMessage()">GÖNDER</button>
+        </div>
     </div>
 
     <script>
+        // 1. Derin Analiz Sorgusu (3 Farklı Sonuç İçin)
         async function queryLifeOs() {
             const btn = document.getElementById('qBtn');
-            btn.innerText = "HESAPLANIYOR...";
+            btn.innerText = "FISILTILAR DİNLENİYOR...";
             try {
                 const res = await fetch('/api/analiz');
                 const data = await res.json();
-                document.getElementById('aiMsg').innerText = data.aiResponse;
+                
+                addChatMessage("LifeOs", data.aiResponse);
                 
                 let html = '';
                 for (let type in data.strategies) {
                     const s = data.strategies[type];
                     html += `
                         <div class="strat-card">
-                            <div style="color:#888; font-size:0.7rem;">${type.toUpperCase()} STRATEJİ</div>
-                            <div style="color:#f0b90b; margin:5px 0;">${s.pair}</div>
+                            <div style="font-size:0.6rem; color:#888;">${type.toUpperCase()}</div>
+                            <div style="color:var(--gold); font-size:0.8rem;">${s.pair}</div>
                             <div class="${s.action === 'AL' ? 'buy' : 'sell'}">${s.action}</div>
-                            <div class="price-info">
-                                Giriş: ${s.price}<br>
-                                TP: <span style="color:#0f0">${s.tp}</span><br>
-                                SL: <span style="color:#f00">${s.sl}</span>
+                            <div class="price-details">
+                                G: ${s.price}<br>
+                                T: <span style="color:#0f0">${s.tp}</span><br>
+                                S: <span style="color:#f00">${s.sl}</span>
                             </div>
-                            <button onclick="execTrade('${s.pair}','${s.action}','${s.tp}','${s.sl}')">🚀 UYGULA (DEMO)</button>
+                            <button class="action-btn" onclick="execTrade('${s.pair}','${s.action}','${s.tp}','${s.sl}')">UYGULA</button>
                         </div>
                     `;
                 }
-                document.getElementById('grid').innerHTML = html;
-            } catch (e) { alert("Hata: " + e.message); }
-            finally { btn.innerText = "FISILTILARI DİNLE VE ANALİZ ET"; }
+                document.getElementById('stratGrid').innerHTML = html;
+            } catch (e) { addChatMessage("Sistem", "Bağlantı hatası oluştu."); }
+            finally { btn.innerText = "DERİN ANALİZ VE SORGULAMA BAŞLAT"; }
         }
 
+        // 2. Sohbet Canlısı Fonksiyonu
+        async function sendMessage() {
+            const input = document.getElementById('userInput');
+            const msg = input.value.trim();
+            if(!msg) return;
+
+            addChatMessage("Sen", msg);
+            input.value = '';
+
+            try {
+                const res = await fetch('/api/webhook', { // Webhook üzerinden konuşur
+                    method: 'POST',
+                    body: JSON.stringify({ message: { text: msg, chat: { id: "web_user" } } })
+                });
+                // Not: Webhook doğrudan Telegram'a atar, buraya dönmesini istiyorsan analiz api'sini de kullanabilirsin.
+            } catch (e) { console.log("Sohbet hatası."); }
+        }
+
+        function addChatMessage(sender, text) {
+            const box = document.getElementById('chatBox');
+            box.innerHTML += `<div class="chat-msg"><span class="${sender==='LifeOs'?'lifeos-name':''}"><b>${sender}:</b></span> ${text}</div>`;
+            box.scrollTop = box.scrollHeight;
+        }
+
+        // 3. Manuel Emir Gönderimi
         async function execTrade(pair, action, tp, sl) {
-            if(!confirm(pair + " için emir gönderilsin mi?")) return;
+            if(!confirm(pair + " için " + action + " emri gönderilsin mi?")) return;
             try {
                 const res = await fetch('/api/trade', {
                     method: 'POST',
@@ -69,7 +122,8 @@
                 });
                 const result = await res.json();
                 alert(result.msg);
-            } catch (e) { alert("Hata: " + e.message); }
+                addChatMessage("Sistem", pair + " emri iletildi.");
+            } catch (e) { alert("Hata!"); }
         }
     </script>
 </body>
